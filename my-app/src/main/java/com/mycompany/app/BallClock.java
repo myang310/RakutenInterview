@@ -1,11 +1,11 @@
 package main.java.com.mycompany.app;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.Stack;
 
@@ -19,7 +19,11 @@ public class BallClock {
 	private Stack<Integer> minutes = new Stack<>();
 	private MinutesCounter counter = new MinutesCounter();
 	
-	public BallClock(int ballCount) {
+	private int MAX_MINUTES = 4;
+	private int MAX_FIVE_MINUTES = 11;
+	private int MAX_HOURS = 11;
+	
+	public BallClock(Integer ballCount) {
 		for (int i = 1; i <= ballCount; i++) {
 			queue.add(i);
 		}
@@ -39,47 +43,40 @@ public class BallClock {
 		return JSONValue.toJSONString(map);
 	}
 	
-	private void runOneMinute() {
-		try {
-			Integer ballNumber = this.queue.remove();
-			
-			if (this.minutes.size() == 4) {
-				while (this.minutes.size() > 0) {
-					this.queue.add(this.minutes.pop());
-				}
-				
-				if (this.fiveMinutes.size() == 11) {
-					while (this.fiveMinutes.size() > 0) {
-						this.queue.add(this.fiveMinutes.pop());
-					}
-					
-					if (this.hours.size() == 11) {
-						while (this.hours.size() > 0) {
-							this.queue.add(this.hours.pop());
-						}
-						this.queue.add(ballNumber);
-					} else {
-						this.hours.push(ballNumber);
-					}
-				} else {
-					this.fiveMinutes.push(ballNumber);
-				}
-			} else {
-				this.minutes.push(ballNumber);
-			}
-			
-			this.counter.incrementOneMinute();
-			
-		} catch(NoSuchElementException exception) {
-			exception = null;
+	private void emptyToQueue(Stack<Integer> stack) {
+		while(!stack.empty()) {
+			this.queue.add(stack.pop());
 		}
 	}
+		
+	private void runOneMinute() {
+		Integer ballNumber = this.queue.remove();
+		Collection<Integer> insertInto = this.minutes;
+		
+		if (this.minutes.size() == this.MAX_MINUTES) {
+			this.emptyToQueue(this.minutes);
+			insertInto = this.fiveMinutes;
+			
+			if (this.fiveMinutes.size() == this.MAX_FIVE_MINUTES) {
+				this.emptyToQueue(this.fiveMinutes);
+				insertInto = this.hours;
+				
+				if (this.hours.size() == this.MAX_HOURS) {
+					this.emptyToQueue(this.hours);
+					insertInto = this.queue;
+				}
+			}
+		}
+
+		insertInto.add(ballNumber);
+		this.counter.incrementOneMinute();
+	}
 	
-	private int getBallCount() {
+	private Integer getBallCount() {
 		return this.queue.size() + this.hours.size() + this.fiveMinutes.size() + this.minutes.size();
 	}
 	
-	private int minutesToDays(int minutes) {
+	private Integer minutesToDays(int minutes) {
 		return minutes / (60 * 24);
 	}
 	
